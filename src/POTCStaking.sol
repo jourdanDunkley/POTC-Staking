@@ -11,11 +11,13 @@
 
 pragma solidity ^0.8.14;
 
-import "./Ownable.sol";
+import "./Owned.sol";
+import "./Papaya.sol";
+import "./POTC.sol";
 
-contract POTCStaking is Ownable {
-  PapayaToken public papayaToken;
-  ERC721 public parrotContract;
+contract POTCStaking is Owned {
+  Papaya public papayaToken;
+  POTC public parrotContract;
 
   uint256 constant normalRate = (10 * 1E18) / uint256(1 days); 
   uint256 constant legendaryRate = (30 * 1E18) / uint256(1 days); 
@@ -26,9 +28,9 @@ contract POTCStaking is Ownable {
   mapping(address => uint256) public _legendaryBalance;
   mapping(address => uint256) public _timeLastClaimed;
 
-  constructor(address _papayaToken, address _parrotContract){
-    parrotContract = ERC721(_parrotContract);
-    papayaToken = PapayaToken(_papayaToken);
+  constructor(address _papayaToken, address _parrotContract) Owned(msg.sender) {
+    parrotContract = POTC(_parrotContract);
+    papayaToken = Papaya(_papayaToken);
   }
 
   function outstandingPapaya() public view returns(uint256) {
@@ -52,7 +54,7 @@ contract POTCStaking is Ownable {
 
   modifier updatePapaya(address ownerAddress) {
     uint256 papayaPayout = calculatePapaya(ownerAddress);
-    _timeLastClaimed = block.timestamp();
+    uint timeLastClaimed = block.timestamp;
     parrotOwnerRewards[ownerAddress] += papayaPayout;
     _;
   }
@@ -60,7 +62,7 @@ contract POTCStaking is Ownable {
   function withdrawPapaya() public updatePapaya(msg.sender) returns(uint256) {
     uint256 papayaPayout = parrotOwnerRewards[msg.sender];
     parrotOwnerRewards[msg.sender] = 0;
-    papayaToken.stakerMint(msg.sender, papayaPayour);
+    papayaToken.stakerMint(msg.sender, papayaPayout);
     return papayaPayout;
   }
   
@@ -86,6 +88,7 @@ contract POTCStaking is Ownable {
 
   function unstake(uint256 _tokenId) public updatePapaya(msg.sender) {
     require(parrotOwner[_tokenId] == msg.sender, "You do not own this parrot");
+    bool isLegend = isLegendary(_tokenId);
 
     unchecked {
       if(isLegend){
