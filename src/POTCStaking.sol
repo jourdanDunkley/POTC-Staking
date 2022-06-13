@@ -24,7 +24,7 @@ contract POTCStaking is Ownable {
   mapping(address => uint256) public parrotOwnerRewards;
   mapping(address => uint256) public _normalBalance;
   mapping(address => uint256) public _legendaryBalance;
-  mapping(address => uint256) public _timeLastClaimed;
+  mapping(address => uint256) public _timeLastUpdate;
 
   constructor(address _papayaToken, address _parrotContract){
     parrotContract = ERC721(_parrotContract);
@@ -36,8 +36,8 @@ contract POTCStaking is Ownable {
   }
 
   function calculatePapaya(address ownerAddress) public view returns(uint256) {
-    uint256 papayaPayout = (((block.timestamp - _timeLastClaimed[ownerAddress]) * normalRate * _normalBalance[ownerAddress])
-      + ((block.timestamp - _timeLastClaimed[ownerAddress]) * legendaryRate * _legendaryBalance[ownerAddress])
+    uint256 papayaPayout = (((block.timestamp - _timeLastUpdate[ownerAddress]) * normalRate * _normalBalance[ownerAddress])
+      + ((block.timestamp - _timeLastUpdate[ownerAddress]) * legendaryRate * _legendaryBalance[ownerAddress])
     );
     return papayaPayout;
   }
@@ -52,7 +52,7 @@ contract POTCStaking is Ownable {
 
   modifier updatePapaya(address ownerAddress) {
     uint256 papayaPayout = calculatePapaya(ownerAddress);
-    _timeLastClaimed = block.timestamp();
+    _timeLastUpdate = block.timestamp();
     parrotOwnerRewards[ownerAddress] += papayaPayout;
     _;
   }
@@ -60,7 +60,7 @@ contract POTCStaking is Ownable {
   function withdrawPapaya() public updatePapaya(msg.sender) returns(uint256) {
     uint256 papayaPayout = parrotOwnerRewards[msg.sender];
     parrotOwnerRewards[msg.sender] = 0;
-    papayaToken.stakerMint(msg.sender, papayaPayour);
+    papayaToken.stakerMint(msg.sender, papayaPayout);
     return papayaPayout;
   }
   
