@@ -54,7 +54,7 @@ contract POTCStaking is Owned {
 
   modifier updatePapaya(address ownerAddress) {
     uint256 papayaPayout = calculatePapaya(ownerAddress);
-    uint timeLastClaimed = block.timestamp;
+    _timeLastClaimed[ownerAddress] = block.timestamp;
     parrotOwnerRewards[ownerAddress] += papayaPayout;
     _;
   }
@@ -71,16 +71,16 @@ contract POTCStaking is Owned {
 
     unchecked {
       if(isLegend){
-        _legendaryBalance[msg.sender]++;
+        ++_legendaryBalance[msg.sender];
       } else {
-        _normalBalance[msg.sender]++;
+        ++_normalBalance[msg.sender];
       }
     }
     parrotOwner[_tokenId] = msg.sender;
     parrotContract.transferFrom(msg.sender, address(this), _tokenId);
   } 
 
-  function stakeMany(uint256[] memory tokenIds) public updatePapaya(msg.sender) {
+  function stakeMany(uint256[] calldata tokenIds) public updatePapaya(msg.sender) {
     for(uint256 i = 0; i < tokenIds.length; i++){
       stake(tokenIds[i]);
     }
@@ -92,16 +92,16 @@ contract POTCStaking is Owned {
 
     unchecked {
       if(isLegend){
-        _legendaryBalance[msg.sender]--;
+        --_legendaryBalance[msg.sender];
       } else {
-        _normalBalance[msg.sender]--;
+        --_normalBalance[msg.sender];
       }
     }
     delete parrotOwner[_tokenId];
     parrotContract.transferFrom(address(this), msg.sender, _tokenId);
   }
 
-  function unstakeMany(uint256[] memory tokenIds) public updatePapaya(msg.sender) {
+  function unstakeMany(uint256[] calldata tokenIds) public updatePapaya(msg.sender) {
     for(uint256 i = 0; i < tokenIds.length; i++) {
       unstake(tokenIds[i]);
     }

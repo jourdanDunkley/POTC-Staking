@@ -27,6 +27,7 @@ contract Papaya is ERC20, Owned {
     }
 
     function burn(address user, uint256 amount) external {
+        require(user == msg.sender, "Not your tokens");
         _burn(user, amount);
     }
 }
