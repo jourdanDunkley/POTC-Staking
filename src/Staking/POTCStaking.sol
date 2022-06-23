@@ -12,39 +12,40 @@
 pragma solidity ^0.8.14;
 
 import "./Owned.sol";
-import "./Papaya.sol";
-import "./POTC.sol";
+import "./IPOTC.sol";
+import "./IPapaya.sol";
 
 contract POTCStaking is Owned {
-  Papaya public papayaToken;
-  POTC public parrotContract;
 
-  uint256 constant normalRate = (10 * 1E18) / uint256(1 days); 
-  uint256 constant legendaryRate = (30 * 1E18) / uint256(1 days); 
+  IPapaya public immutable papayaContract;
+  IPOTC public immutable potcContract;
+
+  uint256 private constant normalRate = (10 * 1E18) / uint256(1 days); 
+  uint256 private constant legendaryRate = (30 * 1E18) / uint256(1 days); 
 
   mapping(uint256 => address) public parrotOwner;
   mapping(address => uint256) public parrotOwnerRewards;
   mapping(address => uint256) public _normalBalance;
   mapping(address => uint256) public _legendaryBalance;
-  mapping(address => uint256) public _timeLastClaimed;
+  mapping(address => uint256) public _timeLastUpdate;
 
-  constructor(address _papayaToken, address _parrotContract) Owned(msg.sender) {
-    parrotContract = POTC(_parrotContract);
-    papayaToken = Papaya(_papayaToken);
+  constructor(address _parrotContract, address _papayaContract) Owned(msg.sender) {
+    potcContract = IPOTC(_parrotContract);
+    papayaContract = IPapaya(_papayaContract);
   }
 
-  function outstandingPapaya() public view returns(uint256) {
+  function outstandingPapaya() external view returns(uint256) {
     return parrotOwnerRewards[msg.sender] + calculatePapaya(msg.sender);
   }
 
-  function calculatePapaya(address ownerAddress) public view returns(uint256) {
-    uint256 papayaPayout = (((block.timestamp - _timeLastClaimed[ownerAddress]) * normalRate * _normalBalance[ownerAddress])
-      + ((block.timestamp - _timeLastClaimed[ownerAddress]) * legendaryRate * _legendaryBalance[ownerAddress])
+  function calculatePapaya(address ownerAddress) private view returns(uint256) {
+    uint256 papayaPayout = (((block.timestamp - _timeLastUpdate[ownerAddress]) * normalRate * _normalBalance[ownerAddress])
+      + ((block.timestamp - _timeLastUpdate[ownerAddress]) * legendaryRate * _legendaryBalance[ownerAddress])
     );
     return papayaPayout;
   }
 
-  function isLegendary(uint256 tokenId) private view returns(bool) {
+  function isLegendary(uint256 tokenId) private pure returns(bool) {
     if(tokenId >= 14 && tokenId <= 25){
       return true;
     } else {
@@ -54,15 +55,15 @@ contract POTCStaking is Owned {
 
   modifier updatePapaya(address ownerAddress) {
     uint256 papayaPayout = calculatePapaya(ownerAddress);
-    _timeLastClaimed[ownerAddress] = block.timestamp;
+    _timeLastUpdate[ownerAddress] = block.timestamp;
     parrotOwnerRewards[ownerAddress] += papayaPayout;
     _;
   }
 
-  function withdrawPapaya() public updatePapaya(msg.sender) returns(uint256) {
+  function withdrawPapaya() external updatePapaya(msg.sender) returns(uint256) {
     uint256 papayaPayout = parrotOwnerRewards[msg.sender];
     parrotOwnerRewards[msg.sender] = 0;
-    papayaToken.stakerMint(msg.sender, papayaPayout);
+    papayaContract.stakerMint(msg.sender, papayaPayout);
     return papayaPayout;
   }
   
@@ -77,7 +78,7 @@ contract POTCStaking is Owned {
       }
     }
     parrotOwner[_tokenId] = msg.sender;
-    parrotContract.transferFrom(msg.sender, address(this), _tokenId);
+    potcContract.transferFrom(msg.sender, address(this), _tokenId);
   } 
 
   function stakeMany(uint256[] calldata tokenIds) public updatePapaya(msg.sender) {
@@ -98,7 +99,7 @@ contract POTCStaking is Owned {
       }
     }
     delete parrotOwner[_tokenId];
-    parrotContract.transferFrom(address(this), msg.sender, _tokenId);
+    potcContract.transferFrom(address(this), msg.sender, _tokenId);
   }
 
   function unstakeMany(uint256[] calldata tokenIds) public updatePapaya(msg.sender) {

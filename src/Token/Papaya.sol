@@ -2,19 +2,18 @@ pragma solidity >=0.8.10;
 
 import "./ERC20.sol";
 import "./Owned.sol";
-import "./POTCStaking.sol";
 
 contract Papaya is ERC20, Owned {
 
-    mapping(address => bool) public authorizedStakingContracts;
+    mapping(address => bool) private authorizedStakingContracts;
 
     constructor() ERC20("PAPAYA", "PAPAYA", 18) Owned(msg.sender) {}
 
-    function ownerMint(address account, uint256 amount) public onlyOwner {
+    function ownerMint(address account, uint256 amount) external onlyOwner {
         _mint(account, amount);
     }
 
-    function stakerMint(address account, uint256 amount) public {
+    function stakerMint(address account, uint256 amount) external {
         require(
             authorizedStakingContracts[msg.sender],
             "Request only valid from staking contract"
@@ -22,7 +21,7 @@ contract Papaya is ERC20, Owned {
         _mint(account, amount);
     }
 
-    function flipStakingContract(address staker) public onlyOwner {
+    function flipStakingContract(address staker) external onlyOwner {
         authorizedStakingContracts[staker] = !authorizedStakingContracts[staker];
     }
 
