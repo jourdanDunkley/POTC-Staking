@@ -24,18 +24,25 @@ contract POTCStaking is Owned {
   uint256 private constant legendaryRate = (30 * 1E18) / uint256(1 days); 
 
   mapping(uint256 => address) public parrotOwner;
+  mapping(address => uint256[]) internal stakerToParrot; 
   mapping(address => uint256) public parrotOwnerRewards;
   mapping(address => uint256) public _normalBalance;
   mapping(address => uint256) public _legendaryBalance;
   mapping(address => uint256) public _timeLastUpdate;
+
+  bool public live = false;
 
   constructor(address _parrotContract, address _papayaContract) Owned(msg.sender) {
     potcContract = IPOTC(_parrotContract);
     papayaContract = IPapaya(_papayaContract);
   }
 
-  function outstandingPapaya() external view returns(uint256) {
-    return parrotOwnerRewards[msg.sender] + calculatePapaya(msg.sender);
+  function getStakedParrots(address staker) external view returns (uint256[] memory) {
+    return stakerToParrot[staker];
+  }
+
+  function outstandingPapaya(address staker) external view returns(uint256) {
+    return parrotOwnerRewards[staker] + calculatePapaya(staker);
   }
 
   function calculatePapaya(address ownerAddress) private view returns(uint256) {
@@ -46,7 +53,7 @@ contract POTCStaking is Owned {
   }
 
   function isLegendary(uint256 tokenId) private pure returns(bool) {
-    if(tokenId >= 14 && tokenId <= 25){
+    if(tokenId >= 15 && tokenId <= 24){
       return true;
     } else {
       return false;
@@ -68,6 +75,7 @@ contract POTCStaking is Owned {
   }
   
   function stake(uint256 _tokenId) public updatePapaya(msg.sender) {
+    require(live, "NOT_LIVE");
     bool isLegend = isLegendary(_tokenId);
 
     unchecked {
@@ -78,6 +86,7 @@ contract POTCStaking is Owned {
       }
     }
     parrotOwner[_tokenId] = msg.sender;
+    stakerToParrot[msg.sender].push(_tokenId);
     potcContract.transferFrom(msg.sender, address(this), _tokenId);
   } 
 
@@ -99,6 +108,7 @@ contract POTCStaking is Owned {
       }
     }
     delete parrotOwner[_tokenId];
+    removeTokenIdFromArray(stakerToParrot[msg.sender], _tokenId);
     potcContract.transferFrom(address(this), msg.sender, _tokenId);
   }
 
@@ -106,5 +116,23 @@ contract POTCStaking is Owned {
     for(uint256 i = 0; i < tokenIds.length; i++) {
       unstake(tokenIds[i]);
     }
+  }
+
+  function removeTokenIdFromArray(uint256[] storage array, uint256 tokenId) internal {
+    uint256 length = array.length;
+    for (uint256 i = 0; i < length; i++) {
+      if (array[i] == tokenId) {
+        length--;
+        if (i < length) {
+            array[i] = array[length];
+        }
+        array.pop();
+        break;
+      }
+    }
+  }
+
+  function toggle() external onlyOwner {
+    live = !live;
   }
 }
