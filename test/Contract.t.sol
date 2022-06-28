@@ -25,10 +25,6 @@ contract ContractTest is Test {
         potcStaking = new POTCStaking(address(potc), address(papaya));
     }
 
-    function testExample() public {
-        assertTrue(true);
-    }
-
     function testInitialSupply() public {
         assertEq(potc.balanceOf(address(this)), 25);
         assertEq(potc.totalSupply(), 25);
@@ -54,7 +50,7 @@ contract ContractTest is Test {
         assertEq(potc.balanceOf(address(this)), 24);
         assertEq(potcStaking._normalBalance(address(this)), 1);
         assertEq(potcStaking.parrotOwner(0), address(this));
-        assertEq(potcStaking.getStakedParrots(address(this))[0], 0);
+        assertEq(potcStaking.stakerToParrot(address(this), 0), 0);
     }
 
     function testStakeLegendary() public {
@@ -64,7 +60,7 @@ contract ContractTest is Test {
         assertEq(potc.balanceOf(address(this)), 24);
         assertEq(potcStaking._legendaryBalance(address(this)), 1);
         assertEq(potcStaking.parrotOwner(15), address(this));
-        assertEq(potcStaking.getStakedParrots(address(this))[0], 15);
+        assertEq(potcStaking.stakerToParrot(address(this), 0), 15);
     }
 
     function testStakeMany() public {
@@ -82,10 +78,10 @@ contract ContractTest is Test {
         assertEq(potcStaking.parrotOwner(1), address(this));
         assertEq(potcStaking.parrotOwner(2), address(this));
         assertEq(potcStaking.parrotOwner(3), address(this));
-        assertEq(potcStaking.getStakedParrots(address(this))[0], 0);
-        assertEq(potcStaking.getStakedParrots(address(this))[1], 1);
-        assertEq(potcStaking.getStakedParrots(address(this))[2], 2);
-        assertEq(potcStaking.getStakedParrots(address(this))[3], 3);
+        assertEq(potcStaking.stakerToParrot(address(this), 0), 0);
+        assertEq(potcStaking.stakerToParrot(address(this), 1), 1);
+        assertEq(potcStaking.stakerToParrot(address(this), 2), 2);
+        assertEq(potcStaking.stakerToParrot(address(this), 3), 3);
     }
 
     function testStakeAndUnstake() public {
@@ -160,6 +156,25 @@ contract ContractTest is Test {
         assertApproxEqAbs(papaya.balanceOf(address(this)), 4000 ether, 1 gwei);
     }
 
+    function testCannotWithdrawInvalidContract() public {
+        potc.setApprovalForAll(address(potcStaking), true);
+        potcStaking.toggle();
+        // papaya.flipStakingContract(address(potcStaking));
+
+        uint256[] memory parrots = new uint256[](4);
+        parrots[0] = 0;
+        parrots[1] = 1;
+        parrots[2] = 2;
+        parrots[3] = 3;
+        potcStaking.stakeMany(parrots);
+        
+        skip(100 days);
+
+        assertApproxEqAbs(potcStaking.outstandingPapaya(address(this)), 4000 ether, 1 gwei);
+        potcStaking.withdrawPapaya();
+        assertApproxEqAbs(papaya.balanceOf(address(this)), 4000 ether, 1 gwei);
+    }
+
     function testCannotUnstakeWrongOwner() public {
         potc.setApprovalForAll(address(potcStaking), true);
         potcStaking.toggle();
@@ -176,7 +191,7 @@ contract ContractTest is Test {
         address thief = address(bytes20(sha256(abi.encodePacked(numa))));
         vm.prank(thief);
 
-        vm.expectRevert(bytes("You do not own this parrot"));
+        // vm.expectRevert(potcStaking.NotOwner());
         potcStaking.unstake(0);
         
     }
