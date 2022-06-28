@@ -251,4 +251,60 @@ contract ContractTest is Test {
         vm.expectRevert(bytes("Not your tokens"));
         papaya.burn(address(this), 1000 ether);        
     }
+
+    function testCannotStakeWithoutApproving() public {
+        potcStaking.toggle();
+        papaya.flipStakingContract(address(potcStaking));
+
+        uint256[] memory parrots = new uint256[](4);
+        parrots[0] = 0;
+        parrots[1] = 1;
+        parrots[2] = 2;
+        parrots[3] = 3;
+
+        vm.expectRevert(bytes("NOT_AUTHORIZED"));
+        potcStaking.stakeMany(parrots); 
+    }
+
+    function testStakeNormsAndLegendsAndClaim() public {
+        potc.setApprovalForAll(address(potcStaking), true);
+        potcStaking.toggle();
+        papaya.flipStakingContract(address(potcStaking));
+
+        uint256[] memory parrots = new uint256[](25);
+        parrots[0] = 0;
+        parrots[1] = 1;
+        parrots[2] = 2;
+        parrots[3] = 3;
+        parrots[4] = 4;
+        parrots[5] = 5;
+        parrots[6] = 6;
+        parrots[7] = 7;
+        parrots[8] = 8;
+        parrots[9] = 9;
+        parrots[10] = 10;
+        parrots[11] = 11;
+        parrots[12] = 12;
+        parrots[13] = 13;
+        parrots[14] = 14;
+        parrots[15] = 15;
+        parrots[16] = 16;
+        parrots[17] = 17;
+        parrots[18] = 18;
+        parrots[19] = 19;
+        parrots[20] = 20;
+        parrots[21] = 21;
+        parrots[22] = 22;
+        parrots[23] = 23;
+        parrots[24] = 24;
+
+        potcStaking.stakeMany(parrots); 
+
+        skip(100 days);
+
+        // 10*25 = 250; 15*10 = 150; 250 + 150 = 400 $PAPAYA Daily. 400 $PAPAYA*100 DAYS = 40000 $PAPAYA
+        assertApproxEqAbs(potcStaking.outstandingPapaya(address(this)), 40000 ether, 1 gwei);
+        potcStaking.withdrawPapaya();
+        assertApproxEqAbs(papaya.balanceOf(address(this)), 40000 ether, 1 gwei);
+    }
 }
