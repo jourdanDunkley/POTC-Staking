@@ -26,7 +26,7 @@ error NotOwner();
 contract POTCStaking is Owned {
 
   /// @notice Contract for $PAPAYA Utility token.
-  IPapaya public immutable papayaContract;
+  IPapaya public papayaContract;
   /// @notice Contract for original POTC Collection.
   IPOTC public immutable potcContract;
 
@@ -186,4 +186,9 @@ contract POTCStaking is Owned {
   function toggle() external onlyOwner {
     live = !live;
   }
+
+  /// @notice Sets Papaya contract. 
+  function setPapayaContract(address papaya) external onlyOwner {
+    papayaContract = IPapaya(papaya);
+  } 
 }

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 
 /***   
-  _____                     _                __   _   _             _____                _ _                      
- |  __ \                   | |              / _| | | | |           / ____|              (_) |                     
- | |__) |_ _ _ __ _ __ ___ | |_ ___    ___ | |_  | |_| |__   ___  | |     __ _ _ __ _ __ _| |__   ___  __ _ _ __  
- |  ___/ _` | '__| '__/ _ \| __/ __|  / _ \|  _| | __| '_ \ / _ \ | |    / _` | '__| '__| | '_ \ / _ \/ _` | '_ \ 
- | |  | (_| | |  | | | (_) | |_\__ \ | (_) | |   | |_| | | |  __/ | |___| (_| | |  | |  | | |_) |  __/ (_| | | | |
- |_|   \__,_|_|  |_|  \___/ \__|___/  \___/|_|    \__|_| |_|\___|  \_____\__,_|_|  |_|  |_|_.__/ \___|\__,_|_| |_|                                                                                                                                                                                                            
+  _____                     _                __   _   _             _____           _ _     _                 
+ |  __ \                   | |              / _| | | | |           / ____|         (_) |   | |                 
+ | |__) |_ _ _ __ _ __ ___ | |_ ___    ___ | |_  | |_| |__   ___  | |     __ _ _ __|_| |__ | |__   ___  __ _ _ __  
+ |  ___/ _` | '__| '__/ _ \| __/ __|  / _ \|  _| | __| '_ \ / _ \ | |    / _` | '__| | '_ \| '_ \ / _ \/ _` | '_ \ 
+ | |  | (_| | |  | | | (_) | |_\__ \ | (_) | |   | |_| | | |  __/ | |___| (_| | |  | | |_) | |_) |  __/ (_| | | | |
+ |_|   \__,_|_|  |_|  \___/ \__|___/  \___/|_|    \__|_| |_|\___|  \_____\__,_|_|  |_|_.__/|_.__/ \___|\__,_|_| |_|                                                                                                                                                                                                            
 */
 
 /// @title Parrots of the Caribbean Staking
@@ -26,7 +26,7 @@ error NotOwner();
 contract POTCStaking is Owned {
 
   /// @notice Contract for $PAPAYA Utility token.
-  IPapaya public immutable papayaContract;
+  IPapaya public papayaContract;
   /// @notice Contract for original POTC Collection.
   IPOTC public immutable potcContract;
 
@@ -186,4 +186,9 @@ contract POTCStaking is Owned {
   function toggle() external onlyOwner {
     live = !live;
   }
+
+  /// @notice Sets Papaya contract. 
+  function setPapayaContract(address papaya) external onlyOwner {
+    papayaContract = IPapaya(papaya);
+  } 
 }

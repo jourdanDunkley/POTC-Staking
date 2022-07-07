@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./contracts/POTCStaking.sol";
 import "./contracts/POTC.sol";
 import "./contracts/Papaya.sol";
+import "./contracts/ParrotCrew.sol";
  
 contract ContractTest is Test {
 
@@ -15,6 +16,7 @@ contract ContractTest is Test {
     POTC private potc;
     POTCStaking private potcStaking;
     Papaya private papaya;
+    ParrotCrew private parrotCrew;
 
     function setUp() public {
         potc = new POTC(
@@ -23,6 +25,7 @@ contract ContractTest is Test {
         );
         papaya = new Papaya();
         potcStaking = new POTCStaking(address(potc), address(papaya));
+        parrotCrew = new ParrotCrew(address(potc), address(potcStaking));
     }
 
     function testInitialSupply() public {
@@ -321,5 +324,91 @@ contract ContractTest is Test {
         assertApproxEqAbs(potcStaking.outstandingPapaya(address(this)), 40000 ether, 1 gwei);
         potcStaking.withdrawPapaya();
         assertApproxEqAbs(papaya.balanceOf(address(this)), 40000 ether, 1 gwei);
+    }
+
+    function testSetPapayaContract() public {
+        potc.setApprovalForAll(address(potcStaking), true);
+        potcStaking.toggle();
+        papaya.flipStakingContract(address(potcStaking));
+
+        potcStaking.setPapayaContract(address(papaya));
+
+        uint256[] memory parrots = new uint256[](4);
+        parrots[0] = 0;
+        parrots[1] = 1;
+        parrots[2] = 2;
+        parrots[3] = 3;
+        potcStaking.stakeMany(parrots);
+        
+        skip(100 days);
+
+        assertApproxEqAbs(potcStaking.outstandingPapaya(address(this)), 4000 ether, 1 gwei);
+        potcStaking.withdrawPapaya();
+        assertApproxEqAbs(papaya.balanceOf(address(this)), 4000 ether, 1 gwei);
+    }
+
+    function testSetPapayaContractNotOwner() public {
+        potc.setApprovalForAll(address(potcStaking), true);
+        potcStaking.toggle();
+        papaya.flipStakingContract(address(potcStaking));
+
+
+        uint256 numa = 1;
+        address thief = address(bytes20(sha256(abi.encodePacked(numa))));
+        vm.prank(thief);
+
+        potcStaking.setPapayaContract(address(papaya));
+    }
+
+    function testSetPapayaContractOwner() public {
+        potc.setApprovalForAll(address(potcStaking), true);
+        potcStaking.toggle();
+        papaya.flipStakingContract(address(potcStaking));
+        
+        potcStaking.setPapayaContract(address(papaya));
+    }
+
+    function testBalanceOfAfterStaked() public {
+        potcStaking.toggle();
+        potc.setApprovalForAll(address(potcStaking), true);
+        potcStaking.stake(0);
+        assertEq(potc.balanceOf(address(this)), 24);
+        assertEq(potcStaking._normalBalance(address(this)), 1);
+        assertEq(potcStaking.parrotOwner(0), address(this));
+        assertEq(potcStaking.stakerToParrot(address(this), 0), 0);
+        assertEq(parrotCrew.balanceOf(address(this)), 25);
+    }
+
+    function testBalanceOfAfterStakeMany() public {
+        potcStaking.toggle();
+        potc.setApprovalForAll(address(potcStaking), true);
+        uint256[] memory parrots = new uint256[](25);
+        parrots[0] = 0;
+        parrots[1] = 1;
+        parrots[2] = 2;
+        parrots[3] = 3;
+        parrots[4] = 4;
+        parrots[5] = 5;
+        parrots[6] = 6;
+        parrots[7] = 7;
+        parrots[8] = 8;
+        parrots[9] = 9;
+        parrots[10] = 10;
+        parrots[11] = 11;
+        parrots[12] = 12;
+        parrots[13] = 13;
+        parrots[14] = 14;
+        parrots[15] = 15;
+        parrots[16] = 16;
+        parrots[17] = 17;
+        parrots[18] = 18;
+        parrots[19] = 19;
+        parrots[20] = 20;
+        parrots[21] = 21;
+        parrots[22] = 22;
+        parrots[23] = 23;
+        parrots[24] = 24;
+        potcStaking.stakeMany(parrots);
+        assertEq(parrotCrew.balanceOf(address(this)), 25);
     }
 }
